@@ -1,0 +1,134 @@
+services:
+  redis-node-1:
+    image: redis:7.2
+    pull_policy: never
+    command: >
+      redis-server
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --port 6380
+      --requirepass 123456
+      --masterauth 123456
+      --cluster-announce-ip 192.168.20.111
+      --cluster-announce-port 6380
+      --cluster-announce-bus-port 16380
+    ports:
+      - "6380:6380"
+      - "16380:16380"
+    volumes:
+      - redis-node-1-data:/data
+
+  redis-node-2:
+    image: redis:7.2
+    pull_policy: never
+    command: >
+      redis-server
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --port 6381
+      --requirepass 123456
+      --masterauth 123456
+      --cluster-announce-ip 192.168.20.111
+      --cluster-announce-port 6381
+      --cluster-announce-bus-port 16381
+    ports:
+      - "6381:6381"
+      - "16381:16381"
+    volumes:
+      - redis-node-2-data:/data
+
+  redis-node-3:
+    image: redis:7.2
+    pull_policy: never
+    command: >
+      redis-server
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --port 6382
+      --requirepass 123456
+      --masterauth 123456
+      --cluster-announce-ip 192.168.20.111
+      --cluster-announce-port 6382
+      --cluster-announce-bus-port 16382
+    ports:
+      - "6382:6382"
+      - "16382:16382"
+    volumes:
+      - redis-node-3-data:/data
+
+  redis-node-4:
+    image: redis:7.2
+    pull_policy: never
+    command: >
+      redis-server
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --port 6383
+      --requirepass 123456
+      --masterauth 123456
+      --cluster-announce-ip 192.168.20.111
+      --cluster-announce-port 6383
+      --cluster-announce-bus-port 16383
+    ports:
+      - "6383:6383"
+      - "16383:16383"
+    volumes:
+      - redis-node-4-data:/data
+
+  redis-node-5:
+    image: redis:7.2
+    pull_policy: never
+    command: >
+      redis-server
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --port 6384
+      --requirepass 123456
+      --masterauth 123456
+      --cluster-announce-ip 192.168.20.111
+      --cluster-announce-port 6384
+      --cluster-announce-bus-port 16384
+    ports:
+      - "6384:6384"
+      - "16384:16384"
+    volumes:
+      - redis-node-5-data:/data
+
+  redis-node-6:
+    image: redis:7.2
+    pull_policy: never
+    command: >
+      redis-server
+      --cluster-enabled yes
+      --cluster-config-file nodes.conf
+      --cluster-node-timeout 5000
+      --appendonly yes
+      --port 6385
+      --requirepass 123456
+      --masterauth 123456
+      --cluster-announce-ip 192.168.20.111
+      --cluster-announce-port 6385
+      --cluster-announce-bus-port 16385
+    ports:
+      - "6385:6385"
+      - "16385:16385"
+    volumes:
+      - redis-node-6-data:/data
+
+volumes:
+  redis-node-1-data:
+  redis-node-2-data:
+  redis-node-3-data:
+  redis-node-4-data:
+  redis-node-5-data:
+  redis-node-6-data:
