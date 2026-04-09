@@ -1,26 +1,22 @@
 from dotenv import load_dotenv
-
+import os
 from tasks.redis_msg_push import custom_push_to_funboost_queue
 
 load_dotenv()
 from tasks import task_add, task_send_email
-from redis_client import get_redis_cluster, close_redis_cluster
+from redis_client import get_redis_cluster
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel
-from funboost.utils.redis_manager import RedisMixin # <-- 关键导入
-from funboost.consumers.redis_consumer import RedisConsumer
+from funboost.utils.redis_manager import RedisMixin
+from funboost import BoostersManager
+
+#设为自己的 redis 连接池对象
 def _get_redis_cluster_instance(self):
     return get_redis_cluster()
 
 RedisMixin.redis_db_frame = property(_get_redis_cluster_instance)
-# --- FunBoost 相关导入 ---
-from funboost import BoostersManager, BoosterDiscovery
-import logging
-
-# ==================== 项目根路径配置 ====================
-import os
 
 project_root_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -59,7 +55,10 @@ async def lifespan(app: FastAPI):
     yield
 
     print("应用正在关闭，正在停止所有消费者...")
-    BoostersManager.stop_all_consumers()
+    try:
+        BoostersManager.stop_all_consuming()
+    except AttributeError:
+        pass  # 低版本可能没有这个方法，忽略即可
     consumer_thread.join(timeout=10)
     if consumer_thread.is_alive():
         print("警告：消费者线程未能在10秒内完全停止。")

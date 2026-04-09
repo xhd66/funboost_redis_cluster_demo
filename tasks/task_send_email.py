@@ -1,7 +1,5 @@
 import logging
 from funboost import boost, BrokerEnum, BoosterParams
-from redis_client import get_redis_cluster
-from funboost import boost, BrokerEnum, BoosterParams
 
 
 def register_task_send_email():

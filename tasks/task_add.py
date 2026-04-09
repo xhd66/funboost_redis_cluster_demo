@@ -1,13 +1,11 @@
-# task_add.py (修改后)
+# task_add.py
 import logging
+from funboost import boost, BrokerEnum, BoosterParams
 
-from funboost import BoosterParams, BrokerEnum, boost
-from redis_client import get_redis_cluster
 logger = logging.getLogger(__name__)
 
-def register_task_add():
-    from funboost import boost, BrokerEnum, BoosterParams
 
+def register_task_add():
     @boost(BoosterParams(
         queue_name="task_add_queue",
         broker_kind=BrokerEnum.REDIS,

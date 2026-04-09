@@ -2,21 +2,10 @@ import json
 from typing import Any, Dict
 from redis_client import get_redis_cluster
 import logging
-import base64
+
 
 def _serialize_funboost_message(task_function_params: Dict[str, Any]) -> str:
-    """私有方法：按照 funboost 的方式序列化消息。"""
-    # 1. 序列化函数参数为 JSON 字符串
-    params_json_str = json.dumps(
-        task_function_params,
-        ensure_ascii=False,
-        separators=(',', ':')
-    )
-
-    # 2. Base64 编码
-    body_base64 = base64.b64encode(params_json_str.encode('utf-8')).decode('utf-8')
-
-    # 3. 构造 funboost 消息体，注意这里 extra 才是 base64 字符串
+    """按照 funboost 的方式序列化消息。"""
     funboost_message = {"body": task_function_params}
     return json.dumps(funboost_message, ensure_ascii=False, separators=(',', ':'))
 
