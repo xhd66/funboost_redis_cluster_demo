@@ -152,9 +152,89 @@ RedisMixin.redis_db_frame = property(lambda self: get_redis_cluster())
 
 `test/clear_redis_standalone.py` — 以单机模式逐个连接节点执行 FLUSHALL，适用于集群无法启动时清空数据后重建。
 
+## `@boost` 装饰器参数说明
+
+### 基本用法
+
+```python
+from funboost import boost, BrokerEnum, BoosterParams
+
+@boost(BoosterParams(
+    queue_name="{task_add_queue}",    # 队列名称
+    broker_kind=BrokerEnum.REDIS_ACK_ABLE,  # 中间件类型
+    qps=10,                           # 每秒处理任务数限制
+    concurrent_num=5,                 # 并发数
+))
+def task_add(body: dict):
+    # 任务逻辑
+    pass
+```
+
+### 常用参数
+
+| 参数 | 类型 | 说明 | 示例 |
+|---|---|---|---|
+| `queue_name` | str | 队列名称，**必须用 `{}` 包裹**（REDIS_ACK_ABLE 模式） | `"{task_add_queue}"` |
+| `broker_kind` | BrokerEnum | 消息中间件类型 | `BrokerEnum.REDIS_ACK_ABLE` |
+| `qps` | int | 每秒处理任务数限制（可选） | `10` |
+| `concurrent_num` | int | 并发消费数量（可选） | `5` |
+
+### Redis Cluster 队列名规则
+
+根据 `broker_kind` 不同，队列名有不同要求：
+
+| 模式 | 队列名格式 | Redis 版本要求 | 说明 |
+|---|---|---|---|
+| `REDIS_ACK_ABLE`（当前项目使用） | **必须**用 `{}` 包裹 | 任意 | 例如：`"{task_add_queue}"` |
+| `REDIS_STREAM` | **不需要** `{}` 包裹 | **Redis 5.0+** | 例如：`"task_add_queue"` |
+
+**为什么需要 `{}` 包裹？**
+
+在 Redis Cluster 模式下，`{}` 用于指定 **hash tag**，确保相同 key 的数据落在同一个 slot 上。FunBoost 使用 `{queue_name}` 存储任务相关的多个 key（如消息队列、确认队列等），必须保证它们在同一 slot 才能正确工作。
+
+**当前项目配置：**
+
+本项目使用 `BrokerEnum.REDIS_ACK_ABLE` 模式，因此所有队列名必须用 `{}` 包裹：
+
+```python
+# ✅ 正确
+queue_name="{task_add_queue}"
+queue_name="{task_send_email_queue}"
+
+# ❌ 错误（会导致 Redis Cluster 报错）
+queue_name="task_add_queue"
+```
+
+如果改用 `REDIS_STREAM` 模式（需要 Redis 5.0+），则不需要 `{}` 包裹，但当前项目不建议这样做。
+
+### 完整示例
+
+```python
+# tasks/task_add.py
+from funboost import boost, BrokerEnum, BoosterParams
+import logging
+
+logger = logging.getLogger(__name__)
+
+@boost(BoosterParams(
+    queue_name="{task_add_queue}",      # 队列名必须用 {} 包裹
+    broker_kind=BrokerEnum.REDIS_ACK_ABLE,  # 使用 Redis ACK 模式
+    qps=10,                             # 限流：每秒最多处理 10 个任务
+    concurrent_num=5,                   # 并发数：最多 5 个任务同时执行
+))
+def task_add(body: dict):
+    """加法任务"""
+    logger.info(f"接收到任务: {body}")
+    x = body.get("x", 0)
+    y = body.get("y", 0)
+    result = x + y
+    logger.info(f"计算结果: {x} + {y} = {result}")
+    return result
+```
+
 ## 新增任务
 
 1. 在 `tasks/` 目录下新建文件（如 `task_xxx.py`）
-2. 使用 `@boost` 装饰器定义任务函数
+2. 使用 `@boost` 装饰器定义任务函数（注意队列名格式）
 3. 在 `api.py` 中 import 该任务模块（确保在 monkey-patch 之后）
 4. 无需其他改动，`BoostersManager` 会自动注册并启动消费
