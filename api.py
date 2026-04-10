@@ -1,22 +1,26 @@
 from dotenv import load_dotenv
 import os
-from tasks.redis_msg_push import custom_push_to_funboost_queue
 
 load_dotenv()
-from tasks import task_add, task_send_email
-from redis_client import get_redis_cluster
-import uvicorn
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from pydantic import BaseModel
-from funboost.utils.redis_manager import RedisMixin
-from funboost import BoostersManager
 
-#设为自己的 redis 连接池对象
+# 1. 先 monkey-patch RedisMixin，让 @boost 装饰器使用自定义 Redis 连接池
+from redis_client import get_redis_cluster
+from funboost.utils.redis_manager import RedisMixin
+
 def _get_redis_cluster_instance(self):
     return get_redis_cluster()
 
 RedisMixin.redis_db_frame = property(_get_redis_cluster_instance)
+
+# 2. monkey-patch 完成后，再 import 任务模块（触发 @boost 装饰器注册）
+from tasks.task_add import task_add
+from tasks.redis_msg_push import custom_push_to_funboost_queue
+
+import uvicorn
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from pydantic import BaseModel
+from funboost import BoostersManager
 
 project_root_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,22 +28,6 @@ project_root_path = os.path.dirname(os.path.abspath(__file__))
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("应用正在启动...")
-
-    # 显式注册任务（在这里注册会触发装饰器并创建 booster/consumer 对象）
-    # 注意：register_* 不需要 redis_pool（让 funboost 使用 funboost_config.py 或 .env）
-
-    try:
-        task_add.register_task_add()
-    except Exception as e:
-        print("注册 task_add 失败：", e)
-        raise
-
-    try:
-        task_send_email.register_task_send_email()
-    except Exception as e:
-        print("注册 task_send_email 失败：", e)
-        raise
-    # BoosterDiscovery(project_root_path, booster_dirs=['tasks']).auto_discovery()
     print("所有任务已注册。已发现并注册 %d 个任务消费者。" % len(BoostersManager.get_all_boosters()))
 
     # 启动消费者线程
@@ -58,7 +46,7 @@ async def lifespan(app: FastAPI):
     try:
         BoostersManager.stop_all_consuming()
     except AttributeError:
-        pass  # 低版本可能没有这个方法，忽略即可
+        pass
     consumer_thread.join(timeout=10)
     if consumer_thread.is_alive():
         print("警告：消费者线程未能在10秒内完全停止。")
@@ -88,7 +76,8 @@ class RedisSetRequest(BaseModel):
 
 @app.post("/task/add")
 def submit_add_task(req: AddRequest):
-    custom_push_to_funboost_queue("task_add_queue", {"x": req.x, "y": req.y})
+    # custom_push_to_funboost_queue("task_add_queue", {"x": req.x, "y": req.y})
+    task_add.push({"x": req.x, "y": req.y})
     return {"msg": "加法任务已提交", "x": req.x, "y": req.y}
 
 @app.post("/task/send_email")

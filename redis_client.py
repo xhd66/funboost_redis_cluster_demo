@@ -6,7 +6,7 @@ import threading
 
 load_dotenv(override=False)
 
-REDIS_NODES = os.getenv('REDIS_CLUSTER_NODES', '127.0.0.1:6379')
+REDIS_NODES = os.getenv('REDIS_CLUSTER_NODES', '')
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
 
 
