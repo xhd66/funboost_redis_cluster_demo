@@ -11,6 +11,7 @@ def _get_redis_cluster_instance(self):
     return get_redis_cluster()
 
 RedisMixin.redis_db_frame = property(_get_redis_cluster_instance)
+RedisMixin.redis_db_filter_and_rpc_result = property(_get_redis_cluster_instance)
 
 # 2. monkey-patch 完成后，再 import 任务模块（触发 @boost 装饰器注册）
 from tasks.task_add import task_add
@@ -82,7 +83,7 @@ def submit_add_task(req: AddRequest):
 
 @app.post("/task/send_email")
 def submit_email_task(req: EmailRequest):
-    custom_push_to_funboost_queue("task_send_email_queue", {"to": req.to, "subject": req.subject,"body":req.body})
+    custom_push_to_funboost_queue("{task_send_email_queue}", {"to": req.to, "subject": req.subject,"body":req.body})
     return {"msg": "邮件任务已提交", "to": req.to}
 
 @app.post("/redis/set")

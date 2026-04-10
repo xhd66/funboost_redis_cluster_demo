@@ -6,8 +6,8 @@ logger = logging.getLogger(__name__)
 
 
 @boost(BoosterParams(
-    queue_name="task_add_queue",
-    broker_kind=BrokerEnum.REDIS,
+    queue_name="{task_add_queue}",
+    broker_kind=BrokerEnum.REDIS_ACK_ABLE,
     qps=10,
     concurrent_num=5,
 ))
